@@ -38,6 +38,11 @@ describe('ERC721_VRF_Mint', () => {
 
     // this does revert, not sure how to to expect().to.be.reverted() in starknet though
     it('fails when over totalSupply', async () => {
+      await user.invoke(nft, 'premint', {
+        to: user.address,
+        quantity: MAX_SUPPLY + 1,
+      })
+
       await shouldFail(
         user.invoke(nft, 'premint', {
           to: user.address,

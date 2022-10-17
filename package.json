@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "gen-whitelist": "python3 src/generate_whitelist_signatures.py",
     "setup": "npm install && poetry install && poetry run npx hardhat starknet-compile",
     "compile": "poetry run npx hardhat starknet-compile",
     "test": "poetry run npx hardhat test"
