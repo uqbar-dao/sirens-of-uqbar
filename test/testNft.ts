@@ -11,7 +11,6 @@ describe('ERC721_VRF_Mint', () => {
   let deployer : Account
   let user : Account
   let oracle : StarknetContract
-  let whitelist : StarknetContract
   let nft : StarknetContract
   let beacon_address : string
   
@@ -23,9 +22,6 @@ describe('ERC721_VRF_Mint', () => {
 
     beacon_address = oracle.address // fake mock
 
-    const whitelistFactory = await starknet.getContractFactory("Whitelist")
-    whitelist = await whitelistFactory.deploy()
-
     const nftFactory = await starknet.getContractFactory("ERC721_VRF_Mint")
     nft = await nftFactory.deploy({
       name: starknet.shortStringToBigInt('Galaxy Girls'),
@@ -33,13 +29,12 @@ describe('ERC721_VRF_Mint', () => {
       owner: deployer.address,
       default_royalty_receiver: deployer.address,
       default_royalty_fee_basis_points: 500,
-      whitelist: whitelist.address,
       oracle: oracle.address,
     })
   })
 
   describe('#premint', () => {
-    xit('fails when not whitelisted')
+    xit('fails on incorrect signature')
 
     // this does revert, not sure how to to expect().to.be.reverted() in starknet though
     it('fails when over totalSupply', async () => {

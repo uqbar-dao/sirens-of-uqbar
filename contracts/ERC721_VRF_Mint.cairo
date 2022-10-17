@@ -1,10 +1,12 @@
 %lang starknet
 
 from starkware.starknet.common.syscalls import get_caller_address
-from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.cairo_secp.bigint import BigInt3
 from starkware.cairo.common.math import unsigned_div_rem, split_felt, assert_nn_le
+from starkware.cairo.common.hash import hash2
+from starkware.cairo.common.signature import verify_ecdsa_signature
 
 from openzeppelin.access.ownable.library import Ownable
 from immutablex.starknet.token.erc721_token_metadata.library import ERC721_Token_Metadata
@@ -61,12 +63,6 @@ func rng_request_resolved(rng: BigInt3, request_id: felt, result: felt) {
 //
 
 @contract_interface
-namespace IWhitelist {
-    func is_whitelisted(who : felt) -> (wut : felt) {
-    }
-}
-
-@contract_interface
 namespace IRNGOracle {
     func request_rng(beacon_address: felt) -> (requestId: felt) {
     }
@@ -85,7 +81,7 @@ func _oracle() -> (addr : felt) {
 }
 
 @storage_var
-func _whitelist() -> (addr : felt) {
+func _is_used(hash : felt) -> (res : felt) {
 }
 
 @storage_var
@@ -104,7 +100,6 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     owner: felt,
     default_royalty_receiver: felt,
     default_royalty_fee_basis_points: felt,
-    whitelist: felt,
     oracle: felt,
 ) {
     ERC721.initializer(name, symbol);
@@ -113,7 +108,6 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
         default_royalty_receiver, default_royalty_fee_basis_points
     );
     Ownable.initializer(owner);
-    _whitelist.write(whitelist);
     _oracle.write(oracle);
 
     return ();
@@ -127,12 +121,6 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 func totalSupply{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (supply: Uint256) {
     let (supply) = ERC721_totalSupply.read();
     return (supply=Uint256(supply, 0));
-}
-
-@view
-func whitelist{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (addr: felt) {
-    let (addr) = _whitelist.read();
-    return (addr,);
 }
 
 @view
@@ -158,17 +146,6 @@ func hash() -> (hash: felt) {
 //
 
 @external
-func set_whitelist{
-    syscall_ptr: felt*,
-    pedersen_ptr: HashBuiltin*,
-    range_check_ptr,
-}(addr : felt) {
-    Ownable.assert_only_owner();
-    _whitelist.write(addr);
-    return();
-}
-
-@external
 func set_oracle{
     syscall_ptr: felt*,
     pedersen_ptr: HashBuiltin*,
@@ -183,23 +160,30 @@ func set_oracle{
 // Externals (minting)
 //
 
-//  proof_len : felt, proof : felt*
 @external
 func premint{
     syscall_ptr: felt*,
     pedersen_ptr: HashBuiltin*,
-    range_check_ptr
-}(to : felt, quantity : felt) {
-    let (whitelist) = _whitelist.read();
-    // let (leaf) = hash2(to, quantity);
-    let (can_mint) = IWhitelist.is_whitelisted(
-        contract_address=whitelist,
-        who=to, // leaf
-        // quantity
-        // proof_len
-        // proof
+    range_check_ptr,
+    ecdsa_ptr : SignatureBuiltin*
+}(to : felt, quantity : felt, sig : (felt, felt)) {
+    alloc_locals;
+    local ecdsa_ptr : SignatureBuiltin* = ecdsa_ptr;
+
+    let (quantity_hash) = hash2{hash_ptr=pedersen_ptr}(to, quantity);
+    let (is_used) = _is_used.read(quantity_hash);
+    assert is_used = 0;
+    
+    // TODO probably a separate signer, not the owner
+    let (owner) = Ownable.owner();
+    verify_ecdsa_signature(
+        message=quantity_hash,
+        public_key=owner,
+        signature_r=sig[0],
+        signature_s=sig[1],
     );
-    assert can_mint = 1;
+
+    _is_used.write(quantity_hash, 1);
 
     // assert that we won't go over the supply
     let (totalSupply) = ERC721_totalSupply.read();
