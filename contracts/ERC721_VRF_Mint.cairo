@@ -81,6 +81,10 @@ func _oracle() -> (addr : felt) {
 }
 
 @storage_var
+func _signer() -> (addr : felt) {
+}
+
+@storage_var
 func _is_used(hash : felt) -> (res : felt) {
 }
 
@@ -98,6 +102,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     name: felt,
     symbol: felt,
     owner: felt,
+    signer: felt,
     default_royalty_receiver: felt,
     default_royalty_fee_basis_points: felt,
     oracle: felt,
@@ -108,6 +113,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
         default_royalty_receiver, default_royalty_fee_basis_points
     );
     Ownable.initializer(owner);
+    _signer.write(signer);
     _oracle.write(oracle);
 
     return ();
@@ -146,6 +152,17 @@ func hash() -> (hash: felt) {
 //
 
 @external
+func set_signer{
+    syscall_ptr: felt*,
+    pedersen_ptr: HashBuiltin*,
+    range_check_ptr,
+}(addr : felt) {
+    Ownable.assert_only_owner();
+    _signer.write(addr);
+    return();
+}
+
+@external
 func set_oracle{
     syscall_ptr: felt*,
     pedersen_ptr: HashBuiltin*,
@@ -174,11 +191,10 @@ func premint{
     let (is_used) = _is_used.read(quantity_hash);
     assert is_used = 0;
     
-    // TODO probably a separate signer, not the owner
-    let (owner) = Ownable.owner();
+    let (signer) = _signer.read();
     verify_ecdsa_signature(
         message=quantity_hash,
-        public_key=owner,
+        public_key=signer,
         signature_r=sig[0],
         signature_s=sig[1],
     );

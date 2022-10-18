@@ -1,22 +1,23 @@
-import { starknet } from "hardhat";
-import { shouldFail, formatAddress, getAccounts } from "./utils";
-import { Account } from "@shardlabs/starknet-hardhat-plugin/dist/src/account";
+import { starknet } from "hardhat"
+import { shouldFail, formatAddress, getAccounts } from "./utils"
+import { Account } from "@shardlabs/starknet-hardhat-plugin/dist/src/account"
 import { StarknetContract } from "@shardlabs/starknet-hardhat-plugin/dist/src/types"
 import { expect } from "chai";
+import sigs from "../src/whitelist_output_test.json"
 
-const MAX_SUPPLY = 1024
 const DUMMY_RANDOMNESS = '0x75bcd15'
 
 describe('ERC721_VRF_Mint', () => {
   let deployer : Account
+  let signer : Account
   let user : Account
   let oracle : StarknetContract
   let nft : StarknetContract
   let beacon_address : string
   
   before(async () => {
-    [deployer, user] = await getAccounts();
-    
+    [deployer, signer, user] = await getAccounts();
+
     const oracleFactory = await starknet.getContractFactory("Mock_RNG_Oracle")
     oracle = await oracleFactory.deploy()
 
@@ -27,6 +28,7 @@ describe('ERC721_VRF_Mint', () => {
       name: starknet.shortStringToBigInt('Galaxy Girls'),
       symbol: starknet.shortStringToBigInt('GGIRLS'),
       owner: deployer.address,
+      signer: signer.publicKey,
       default_royalty_receiver: deployer.address,
       default_royalty_fee_basis_points: 500,
       oracle: oracle.address,
@@ -34,19 +36,39 @@ describe('ERC721_VRF_Mint', () => {
   })
 
   describe('#premint', () => {
-    xit('fails on incorrect signature')
+    it('fails on incorrect signature', async () => {
+      await shouldFail(
+        user.invoke(nft, 'premint', {
+          to: user.address,
+          quantity: 1,
+          sig: [1, 2]
+        })
+      )
+    })
 
-    // this does revert, not sure how to to expect().to.be.reverted() in starknet though
-    it('fails when over totalSupply', async () => {
+    it('fails on using the same signature twice', async () => {
       await user.invoke(nft, 'premint', {
         to: user.address,
-        quantity: MAX_SUPPLY + 1,
+        quantity: sigs[0]["quantity"],
+        sig: [sigs[0]["r"], sigs[0]["s"]]
       })
 
       await shouldFail(
         user.invoke(nft, 'premint', {
           to: user.address,
-          quantity: MAX_SUPPLY + 1,
+          quantity: sigs[0]["quantity"],
+          sig: [sigs[0]["r"], sigs[0]["s"]]
+        })
+      )
+    })
+
+    // this does revert, not sure how to to expect().to.be.reverted() in starknet though
+    it('fails when over totalSupply', async () => {
+      await shouldFail(
+        user.invoke(nft, 'premint', {
+          to: user.address,
+          quantity: sigs[3]["quantity"],
+          sig: [sigs[3]["r"], sigs[3]["s"]]
         })
       )
     })
@@ -54,7 +76,8 @@ describe('ERC721_VRF_Mint', () => {
     it('mints correctly', async () => {
       await user.invoke(nft, 'premint', {
         to: user.address,
-        quantity: 10,
+        quantity: sigs[1]["quantity"],
+        sig: [sigs[1]["r"], sigs[1]["s"]]
       })
 
       const block = await starknet.getBlock()
@@ -62,9 +85,9 @@ describe('ERC721_VRF_Mint', () => {
       const { events } = block.transaction_receipts[0]
       const { supply } = await nft.call('totalSupply')
       const { balance } = await nft.call('balanceOf', { owner: user.address })
-      expect(events.length).to.eq(10) // could check the events one by one but whatever
-      expect(Number(supply.low)).to.eq(10)
-      expect(Number(balance.low)).to.eq(10)
+      expect(events.length).to.eq(2)
+      expect(Number(supply.low)).to.eq(3)
+      expect(Number(balance.low)).to.eq(3)
     })
   })
 
@@ -116,6 +139,4 @@ describe('ERC721_VRF_Mint', () => {
 
     })
   })
-
-
 })
