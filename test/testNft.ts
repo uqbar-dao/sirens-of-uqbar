@@ -25,8 +25,8 @@ describe('ERC721_VRF_Mint', () => {
 
     const nftFactory = await starknet.getContractFactory("ERC721_VRF_Mint")
     nft = await nftFactory.deploy({
-      name: starknet.shortStringToBigInt('Galaxy Girls'),
-      symbol: starknet.shortStringToBigInt('GGIRLS'),
+      name: starknet.shortStringToBigInt('Sirens of Uqbar'),
+      symbol: starknet.shortStringToBigInt('USRN'),
       owner: deployer.address,
       signer: signer.publicKey,
       default_royalty_receiver: deployer.address,
