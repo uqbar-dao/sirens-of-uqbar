@@ -3,18 +3,12 @@ import fs from 'fs'
 import { AccountImplementationType } from "@shardlabs/starknet-hardhat-plugin/dist/src/types";
 
 async function main() {
-  const path = `${process.cwd()}/.env${".local"}`
+  const path = `${process.cwd()}/.env${".dev"}`
   await require("dotenv").config({ path })
-
-  const deployer = await starknet.getAccountFromAddress(
-    process.env.STARKNET_ADDRESS!,
-    process.env.STARKNET_PKEY!,
-    process.env.STARKNET_ACCOUNT_TYPE! as AccountImplementationType
-  )
 
   const name = starknet.shortStringToBigInt("Sirens of Uqbar")
   const symbol = starknet.shortStringToBigInt("USRNS")
-  const owner = deployer.address;
+  const owner = BigInt(process.env.STARKNET_ADDRESS!)
   const signer = BigInt(process.env.SIGNER!);
   const default_royalty_receiver = BigInt(process.env.PROJECT_ROYALTY_RECEIVER!)
   const default_royalty_fee_basis_points = BigInt(
@@ -35,13 +29,13 @@ async function main() {
   })
   console.log(`Deployed Sirens of Uqbar to address ${nftContract.address}`);
   
-  const addressPath = `${process.cwd()}/addresses/local.json`
+  const addressPath = `${process.cwd()}/addresses/dev.json`
   const addressBook = {
     Sirens: {
       address: nftContract.address.toString(),
       name: "Sirens of Uqbar",
       symbol: "USRNS",
-      owner,
+      owner: owner.toString(16),
       signer: signer.toString(16),
       royaltyReceiver: default_royalty_receiver.toString(16),
       royaltyFeeBP: default_royalty_fee_basis_points.toString(),

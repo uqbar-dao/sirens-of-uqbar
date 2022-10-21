@@ -13,4 +13,5 @@ cairo_venv
 
 #Starknet plugin
 starknet-artifacts
-.env
+.env.prod
+.env.dev

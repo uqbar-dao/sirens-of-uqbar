@@ -1,0 +1,12 @@
+{
+  "Sirens": {
+    "address": "0x02f18ff4396060aa6719c7050c24899bf3e02cec5596604a2e35f837cc3be5aa",
+    "name": "Sirens of Uqbar",
+    "symbol": "USRNS",
+    "owner": "0x00c714c8a74419c82fef6fbfe4dbdfb6b182c06087e36a0a312d979ffbfd346a",
+    "signer": "0x69b49c2cc8b16e80e86bfc5b0614a59aa8c9b601569c7b80dde04d3f3151b79",
+    "royaltyReceiver": "0x00c714c8a74419c82fef6fbfe4dbdfb6b182c06087e36a0a312d979ffbfd346a",
+    "royaltyFeeBP": "500",
+    "oracle": "0x03eb948750baa18c8732f306171f616aa003afabf00ee9e543d9747fcdccfe4b"
+  }
+}
