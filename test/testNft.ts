@@ -1,5 +1,5 @@
 import { starknet } from "hardhat"
-import { shouldFail, formatAddress, getAccounts } from "./utils"
+import { shouldFail, formatAddress, getAccounts } from "../src/utils"
 import { Account } from "@shardlabs/starknet-hardhat-plugin/dist/src/account"
 import { StarknetContract } from "@shardlabs/starknet-hardhat-plugin/dist/src/types"
 import { expect } from "chai";
